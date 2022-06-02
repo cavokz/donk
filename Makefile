@@ -19,3 +19,12 @@ endif
 
 run:
 	$(DooD) -d donk tail -f /dev/null
+
+kind-up:
+	kind create cluster --name donk
+
+kind-down:
+	kind delete cluster --name donk
+
+kind-sanity:
+	$(DooD) donk make kind-up kind-down
