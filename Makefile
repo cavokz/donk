@@ -20,3 +20,18 @@ endif
 
 run:
 	$(DooD) -d donk make pause
+
+kind-up:
+	kind create cluster
+	kind load docker-image donk
+	kubectl wait node kind-control-plane --for condition=Ready --timeout=30s
+	kubectl get nodes
+	kubectl run donk-sleep --image=donk --image-pull-policy=Never -- sleep 5
+	kubectl run donk-pause --image=donk --image-pull-policy=Never -- make pause
+	kubectl get pods
+
+kind-down:
+	kind delete cluster
+
+kind-sanity:
+	$(DooD) donk make kind-up kind-down
