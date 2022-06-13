@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+  labels:
+    app: busybox
+spec:
+#  shareProcessNamespace: true
+  containers:
+    - name: busybox-1
+      image: busybox
+      args: [ "tail", "-f", "/dev/null" ]
+    - name: busybox-2
+      image: busybox
+      args: [ "tail", "-f", "/dev/null" ]

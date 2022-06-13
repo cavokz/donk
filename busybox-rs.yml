@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: busybox
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: busybox
+  template:
+    metadata:
+      labels:
+        app: busybox
+    spec:
+#      shareProcessNamespace: true
+      containers:
+        - name: busybox-1
+          image: busybox
+          args: [ "tail", "-f", "/dev/null" ]
+        - name: busybox-2
+          image: busybox
+          args: [ "tail", "-f", "/dev/null" ]

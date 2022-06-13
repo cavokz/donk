@@ -65,6 +65,15 @@ $ ps -eaf | grep sleep
 nobody      5549    5528  0 17:06 ?        00:00:00 sleep 4321
 ```
 
+Yes, if you map your filesystem in, you can open files as `root`:
+
+```shell
+$ docker run --rm -v /etc:/etc busybox --user nobody wc -l /etc/shadow
+wc: /etc/shadow: Permission denied
+$ docker run --rm -v /etc:/etc busybox wc -l /etc/shadow
+42 /etc/shadow
+```
+
 #### Network space ✅ ####
 
 A service (eg. `nc` on port `1234`) bound on the host is accessible locally
@@ -84,8 +93,139 @@ $ echo 'Hi!' | nc -q0 localhost 1234
 localhost [127.0.0.1] 1234 (?) : Connection refused
 ```
 
+## Pod lab ##
+
+A pod is an intermediate grouping between the host and the containers, containers running in the same pod share resources not accassible outside.
+
+This is an example of pod definition ([busybox-pod.yml](busybox-pod.yml)) with two containers that would do nothing forever (`tail -f /dev/null`):
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+spec:
+  containers:
+    - name: busybox-1
+      image: busybox
+      args: [ "tail", "-f", "/dev/null" ]
+    - name: busybox-2
+      image: busybox
+      args: [ "tail", "-f", "/dev/null" ]
+```
+
+
+We use [Kind](https://kind.sigs.k8s.io/) to run a local cluster with one node:
+
+```shell
+$ kind create cluster
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.24.0) 🖼
+ ✓ Preparing nodes 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing CNI 🔌
+ ✓ Installing StorageClass 💾
+Set kubectl context to "kind-kind"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-kind
+
+Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
+```
+
+We create the pod
+
+```
+$ kubectl apply -f busybox-pod.yml
+pod/busybox created
+```
+
+Wait for it to become ready
+
+```shell
+$ kubectl wait pod busybox --for condition=Ready
+pod/busybox condition met
+```
+
+Let's see what containers in a Kubernetes pod share by default.
+
+#### PID space ❌ ####
+
+Container 1:
+
+```shell
+$ kubectl exec -it busybox -c busybox-1 -- ps
+PID   USER     TIME  COMMAND
+    1 root      0:00 tail -f /dev/null
+   13 root      0:00 ps
+$ kubectl exec -it busybox -c busybox-1 -- ps
+PID   USER     TIME  COMMAND
+    1 root      0:00 tail -f /dev/null
+   19 root      0:00 ps
+```
+
+Container 2:
+
+```shell
+$ kubectl exec -it busybox -c busybox-2 -- ps
+PID   USER     TIME  COMMAND
+    1 root      0:00 tail -f /dev/null
+   13 root      0:00 ps
+```
+
+#### UNIX time-sharing system space ❌ ####
+
+The hostname is the same in all the pod's containers and it's read-only:
+
+```shell
+$ kubectl exec -it busybox -c busybox-1 -- hostname
+busybox
+$ kubectl exec -it busybox -c busybox-2 -- hostname
+busybox
+$ kubectl exec -it busybox -c busybox-1 -- hostname new
+hostname: sethostname: Operation not permitted
+command terminated with exit code 1
+```
+
+It's actually defined in the field `metadata.name` of the pod definition.
+
+#### Filesystem space ❌ ####
+
+```shell
+$ kubectl exec -it busybox -c busybox-1 -- touch /busybox-1
+$ kubectl exec -it busybox -c busybox-2 -- touch /busybox-2
+$ kubectl exec -it busybox -c busybox-1 -- ls /
+bin           etc           product_name  sys           var
+busybox-1     home          product_uuid  tmp
+dev           proc          root          usr
+$ kubectl exec -it busybox -c busybox-2 -- ls /
+bin           etc           product_name  sys           var
+busybox-2     home          product_uuid  tmp
+dev           proc          root          usr
+```
+
+#### UID/GID space ####
+
+#### Network space ✅ ####
+
+From one terminal (`busybox-1` listening to `localhost:1234`):
+
+```shell
+$ kubectl exec -it busybox -c busybox-1 -- nc -l -p 1234 localhost
+Hi from busybox-2!
+```
+
+From another terminal (`busybox-2` connecting to `localhost:1234`), enter **Hi from busybox-2!** with the keyboard:
+
+```shell
+$ kubectl exec -it busybox -c busybox-2 -- nc localhost 1234
+Hi from busybox-2!
+```
+
 ## Resources
 
 * [Using Docker-in-Docker for your CI or testing environment? Think twice.](https://jpetazzo.github.io/2015/09/03/do-not-use-docker-in-docker-for-ci/)
 * [The danger of exposing docker.sock](https://dejandayoff.com/the-danger-of-exposing-docker.sock/)
 * [Don't expose the Docker socket (not even to a container)](https://web.archive.org/web/20190623234615/https://www.lvh.io/posts/dont-expose-the-docker-socket-not-even-to-a-container.html)
+* [What’s so great about Rootless Containers?](https://www.devseccon.com/blog/whats-so-great-about-rootless-containers-secadvent-day-24)
