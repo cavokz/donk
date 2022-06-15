@@ -14,6 +14,9 @@ donk: Dockerfile
 	docker build -q -t donk .
 	docker image ls donk
 
+scan: Dockerfile
+	docker scan -f Dockerfile donk
+
 sanity: NEST_LEVEL ?= 3
 sanity:
 ifneq ($(NEST_LEVEL),0)
