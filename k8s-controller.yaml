@@ -1,0 +1,35 @@
+---
+- name: Setup Kubernetes controller
+  hosts: node-0
+  tasks:
+    - name: Initialize the cluster
+      become: true
+      command:
+        cmd: >
+          kubeadm init
+            --apiserver-advertise-address={{ node_ip }}
+            --apiserver-cert-extra-sans={{ node_ip }}
+            --pod-network-cidr=10.0.0.0/24
+        creates: /etc/kubernetes/admin.conf
+    - name: "Create {{ ansible_user_dir }}/.kube"
+      file:
+        path: "{{ ansible_user_dir }}/.kube"
+        state: directory
+    - name: "Put {{ ansible_user_dir }}/.kube/config"
+      become: true
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ ansible_user_dir }}/.kube/config"
+        owner: "{{ ansible_user_uid }}"
+        group: "{{ ansible_user_gid }}"
+        mode: 0640
+        remote_src: yes
+    - name: Generate join command
+      become: true
+      command: kubeadm token create --print-join-command
+      register: join_command
+    - name: Save join command
+      delegate_to: localhost
+      copy:
+        content: "{{ join_command.stdout_lines[0] }}"
+        dest: "./join-command.sh"

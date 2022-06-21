@@ -39,3 +39,9 @@ kind-down:
 
 kind-sanity:
 	$(DooD) donk make kind-up kind-down
+
+vagrant-up:
+	vagrant up --parallel
+
+vagrant-down:
+	vagrant destroy -f

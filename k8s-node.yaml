@@ -1,0 +1,62 @@
+---
+- name: Setup Kubernetes node
+  gather_facts: no
+  hosts: all
+  become: true
+  tasks:
+    - name: Add Google apt key
+      copy:
+        src: gc-apt-key.gpg
+        dest: /etc/apt/trusted.gpg.d/
+        owner: root
+        group: root
+        mode: 0644
+    - name: Add Google apt repository
+      apt_repository:
+        repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+    - name: Install Kubernetes packages
+      package:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+          - containerd
+        state: present
+    - name: "Set node IP address"
+      lineinfile:
+        path: '/etc/systemd/system/kubelet.service.d/10-kubeadm.conf'
+        line: 'Environment="KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}"'
+        regexp: 'KUBELET_EXTRA_ARGS='
+        insertafter: '\[Service\]'
+        state: present
+    - name: Load needed modules
+      modprobe:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - overlay
+        - br_netfilter
+    - name: Enable sysctl flags
+      sysctl:
+        name: "{{ item }}"
+        value: '1'
+        sysctl_set: yes
+        state: present
+      with_items:
+        - net.ipv4.ip_forward
+        - net.bridge.bridge-nf-call-iptables
+        - net.bridge.bridge-nf-call-ip6tables
+
+- name: Join Kubernetes node
+  gather_facts: no
+  hosts: "all:!node-0"
+  tasks:
+    - name: Copy the join command to server location
+      copy:
+        src: join-command.sh
+        dest: /tmp/join-command.sh
+    - name: Join the node to cluster
+      become: true
+      command:
+        cmd: sh /tmp/join-command.sh
+        creates: /etc/kubernetes/kubelet.conf
