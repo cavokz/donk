@@ -32,14 +32,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install VirtualBox
-        run: |
-          VBoxManage --version
-
       - name: Install Vagrant
         run: |
-          brew install --cask vagrant
+          brew install vagrant
           vagrant up --version
+
+      - name: Install Libvirt
+        run: |
+          brew install libvirt
+          vagrant plugin install vagrant-libvirt
 
       - name: Vagrant sanity checks
         run: make vagrant-sanity
