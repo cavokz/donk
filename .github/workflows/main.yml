@@ -23,3 +23,23 @@ jobs:
 
       # - name: Kind sanity checks
       #   run: make kind-sanity
+
+  vagrant:
+    name: Vagrant sanity
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install VirtualBox
+        run: |
+          VBoxManage --version
+
+      - name: Install Vagrant
+        run: |
+          brew install --cask vagrant
+          vagrant up --version
+
+      - name: Vagrant sanity checks
+        run: make vagrant-sanity

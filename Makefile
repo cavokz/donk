@@ -45,3 +45,6 @@ vagrant-up:
 
 vagrant-down:
 	vagrant destroy -f
+
+vagrant-sanity:
+	make vagrant-up vagrant-down

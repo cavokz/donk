@@ -6,6 +6,9 @@
 #  - https://www.itwonderlab.com/en/ansible-kubernetes-vagrant-tutorial/
 #  - https://www.tigera.io/learn/guides/kubernetes-networking/kubernetes-cni/
 #  - https://kubevious.io/blog/post/comparing-kubernetes-container-network-interface-cni-providers
+#  - https://github.com/actions/virtual-environments/issues/2999
+#  - https://github.com/actions/virtual-environments/issues/433
+#  - https://github.com/actions/virtual-environments/issues/183
 
 N = 2
 NET = "192.168.56"
