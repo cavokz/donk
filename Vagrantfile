@@ -9,6 +9,7 @@
 #  - https://github.com/actions/virtual-environments/issues/2999
 #  - https://github.com/actions/virtual-environments/issues/433
 #  - https://github.com/actions/virtual-environments/issues/183
+#  - https://blog.wikichoon.com/2016/01/qemusystem-vs-qemusession.html
 
 N = 2
 NET = "192.168.56"
@@ -24,6 +25,9 @@ Vagrant.configure("2") do |config|
   config.vm.provider :libvirt do |libvirt|
     libvirt.cpus = 2
     libvirt.memory = 4096
+
+    libvirt.uri = "qemu:///session"
+    libvirt.driver = "qemu"
   end
 
   config.vm.synced_folder ".", "/vagrant", disabled: true
@@ -35,7 +39,8 @@ Vagrant.configure("2") do |config|
     config.vm.define "node-#{i}" do |node|
       node_ip = "#{NET}.#{100 + i}"
 
-      node.vm.network "private_network", ip: node_ip
+      #node.vm.network "private_network", ip: node_ip
+      node.vm.network "public_network", :type => "user"
       node.vm.hostname = "node-#{i}"
 
       node.vm.provision "ansible" do |ansible|
