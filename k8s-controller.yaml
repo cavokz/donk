@@ -9,7 +9,7 @@
           kubeadm init
             --apiserver-advertise-address={{ node_ip }}
             --apiserver-cert-extra-sans={{ node_ip }}
-            --pod-network-cidr=10.0.0.0/24
+            --pod-network-cidr=10.244.0.0/16
         creates: /etc/kubernetes/admin.conf
     - name: "Create {{ ansible_user_dir }}/.kube"
       file:
@@ -24,6 +24,16 @@
         group: "{{ ansible_user_gid }}"
         mode: 0640
         remote_src: yes
+    - name: Copy the flannel configuration
+      copy:
+        src: kube-flannel.yml
+        dest: kube-flannel.yml
+    - name: Apply the flannel configuration
+      command: kubectl apply -f kube-flannel.yml
+      retries: 10
+      delay: 6
+      register: result
+      until: result.rc == 0
     - name: Generate join command
       become: true
       command: kubeadm token create --print-join-command

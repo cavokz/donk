@@ -47,6 +47,24 @@
         - net.bridge.bridge-nf-call-iptables
         - net.bridge.bridge-nf-call-ip6tables
 
+- name: Setup flanneld
+  gather_facts: yes
+  hosts: all
+  tasks:
+    - name: Download flanneld (amd64)
+      get_url:
+        url: https://github.com/flannel-io/flannel/releases/download/v0.18.1/flannel-v0.18.1-linux-amd64.tar.gz
+        dest: /tmp/flannel.tar.gz
+        checksum: sha256:75ecdea199c2863293695168e18c8a9ba150a6685c5ffb1f50d73319fc3bf352
+      register: download_status
+      when: ansible_facts.architecture == "x86_64"
+    - name: Install flanneld
+      become: true
+      command:
+        cmd: tar -C /usr/local/sbin -zxf "{{ download_status.dest }}" flanneld
+        creates: /usr/local/sbin/flanneld
+      when: download_status.changed
+
 - name: Join Kubernetes node
   gather_facts: no
   hosts: "all:!node-0"
