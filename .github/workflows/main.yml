@@ -23,3 +23,24 @@ jobs:
 
       # - name: Kind sanity checks
       #   run: make kind-sanity
+
+  vagrant:
+    name: Vagrant sanity
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Vagrant
+        run: |
+          brew install vagrant
+          vagrant up --version
+
+      - name: Install Libvirt
+        run: |
+          brew install libvirt
+          vagrant plugin install vagrant-libvirt
+
+      - name: Vagrant sanity checks
+        run: make vagrant-sanity
